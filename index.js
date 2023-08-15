@@ -1,7 +1,6 @@
 const cheerio = require("cheerio");
 const fetch = require("node-fetch");
 var _ = require("lodash");
-const fs = require("fs");
 
 const getNews = (options, callback) => {
   var isDone = false;
@@ -16,7 +15,7 @@ const getNews = (options, callback) => {
       const scriptData = $("script").last().html();
       // const id = scriptData.match(/var min_news_id = (.*);/);
       // const newsOffsetId = _.split(id[1], '"', 3);
-      const news_offset = "1234567" || newsOffsetId[1];
+      const news_offset = 1 || newsOffsetId[1];
 
       $(".PmX01nT74iM8UNAIENsC").each((i, element) => {
         const $element = $(element);
@@ -40,17 +39,15 @@ const getNews = (options, callback) => {
 
         const time = $element
           .find(
-            "div.LUWdd1C_3UqqulVsopn0 div div div.E3pJPegn7xWCOvv3BEcf span"
+            "div.LUWdd1C_3UqqulVsopn0 div div div.E3pJPegn7xWCOvv3BEcf span[itemprop='datePublished']"
           )
-          .text();
+          .attr("content");
 
-        const date = $element
-          .find(
-            "div.LUWdd1C_3UqqulVsopn0 div div div.E3pJPegn7xWCOvv3BEcf span.date"
-          )
-          .text();
-
-        const createdAt = `${time} on ${date}`;
+        const createdAt = `${new Date(time).toLocaleString("en-US", {
+          dateStyle: "medium",
+          timeStyle: "short",
+          timeZone: "Asia/Kolkata",
+        })}`;
 
         let content = $element
           .find("div.LUWdd1C_3UqqulVsopn0 div div div.KkupEonoVHxNv4A_D7UG")
@@ -74,6 +71,7 @@ const getNews = (options, callback) => {
       });
       if (!isDone) {
         callback(posts, news_offset);
+        // callback(posts);
       }
       if (posts.length < 1) {
         callback({
@@ -82,6 +80,7 @@ const getNews = (options, callback) => {
       }
     })
     .catch((err) => {
+      console.log(err);
       callback(err);
     });
 };
@@ -119,36 +118,48 @@ const getMoreNews = (options, callback) => {
       const $ = cheerio.load(data.html);
       const news_offset = data.min_news_id;
 
-      $(".news-card").each((i, element) => {
+      $(".PmX01nT74iM8UNAIENsC").each((i, element) => {
         const $element = $(element);
 
         const title = $element
-          .find("div.news-card-title a.clickable span")
+          .find(
+            "div.LUWdd1C_3UqqulVsopn0 div div div span.ddVzQcwl2yPlFt4fteIE"
+          )
           .text();
 
         const image = $element
-          .find(".news-card-image")
-          .attr("style")
-          .match(/'(.*)'/)[1];
-
+          .find("div.GXPWASMx93K0ajwCIcCA")
+          .html()
+          .split("url(")[1]
+          .split(")")[0];
         const author = $element
-          .find("div.news-card-title div.news-card-author-time span.author")
+          .find(
+            "div.LUWdd1C_3UqqulVsopn0 div div div.E3pJPegn7xWCOvv3BEcf span.author"
+          )
           .text();
 
         const time = $element
-          .find("div.news-card-title div.news-card-author-time span.time")
+          .find(
+            "div.LUWdd1C_3UqqulVsopn0 div div div.E3pJPegn7xWCOvv3BEcf span"
+          )
           .text();
 
-        const date = $element
-          .find("div.news-card-author-time span.date")
+        // const date = $element
+        //   .find(
+        //     "div.LUWdd1C_3UqqulVsopn0 div div div.E3pJPegn7xWCOvv3BEcf span.date"
+        //   )
+        //   .text();
+
+        const createdAt = `${time}`;
+
+        let content = $element
+          .find("div.LUWdd1C_3UqqulVsopn0 div div div.KkupEonoVHxNv4A_D7UG")
           .text();
-
-        const createdAt = `${time} on ${date}`;
-
-        let content = $element.find("div.news-card-content div").text();
-        content = content.substring(0, content.indexOf("\n"));
-
-        const readMore = $element.find("div.read-more a.source").attr("href");
+        const readMore = $element
+          .find(
+            "div.LUWdd1C_3UqqulVsopn0 div div.VW4Ta0ioG_64Xx1ROszP a.LFn0sRS51HkFD0OHeCdA"
+          )
+          .attr("href");
 
         const postData = {
           image: image,
